@@ -6,13 +6,18 @@ import {
   window as VsCodeWindow,
   workspace as VsCodeWorkspace,
 } from "vscode";
-import { CmShell, ICmShell } from "./cmShell";
-import { GetWorkspaceFromPath, Status } from "./commands";
+import { GetWorkspaceFromPath, Status } from "./cm/commands";
+import { CmShell, ICmShell } from "./cm/shell";
+import { CheckinCommand } from "./commands";
 import { IWorkspaceInfo } from "./models";
 import { Workspace } from "./workspace";
 import { WorkspaceOperations } from "./workspaceOperations";
 
 export class PlasticScm implements Disposable {
+  public get workspaces(): Map<string, Workspace> {
+    return this.mWorkspaces;
+  }
+
   private readonly mWorkspaces: Map<string, Workspace> = new Map<string, Workspace>();
   private readonly mChannel: OutputChannel;
   private readonly mDisposables: Disposable[] = [];
@@ -64,6 +69,10 @@ export class PlasticScm implements Disposable {
         await globalShell.stop();
         globalShell.dispose();
       }
+    }
+
+    if (this.mWorkspaces.size) {
+      this.mDisposables.push(new CheckinCommand(this));
     }
   }
 

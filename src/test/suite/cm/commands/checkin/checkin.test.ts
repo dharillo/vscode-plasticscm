@@ -1,48 +1,48 @@
-import { assert, expect } from "chai";
+import { expect } from "chai";
 import { IMock, It, Mock, MockBehavior, Times } from "typemoq";
-import { ICmParser, ICmShell } from "../../../../cmShell";
-import { GetWorkspaceFromPath } from "../../../../commands";
-import { IWorkspaceInfo } from "../../../../models";
+import { Checkin } from "../../../../../cm/commands";
+import { ICmParser, ICmShell } from "../../../../../cm/shell";
+import { ICheckinChangeset } from "../../../../../models";
 
-describe("GetWorkspaceFromPath Command", () => {
+describe("Checkin Command", () => {
   context("When the command runs successfully", () => {
     context("When output is correct", () => {
       const cmShellMock: IMock<ICmShell> = Mock.ofType<ICmShell>(undefined, MockBehavior.Strict);
-      let cmdResult: IWorkspaceInfo | undefined;
+      const result: ICheckinChangeset[] = [
+        {
+          changesetInfo: {
+            branch: "wkname",
+            changesetId: 20,
+            repository: "/path/to/wk",
+            server: "",
+          },
+          mountPath: "",
+        },
+      ];
+
+      let cmdResult: ICheckinChangeset[];
 
       cmShellMock
         .setup(mock => mock.exec(
           It.isAnyString(),
           It.is(args => true),
-          It.is<ICmParser<IWorkspaceInfo | undefined>>(parser => true)))
+          It.is<ICmParser<ICheckinChangeset[]>>(parser => true)))
         .returns(() => Promise.resolve({
-          result: {
-            id: "95b0a429-7d9c-48af-8b5b-6f1ced257b20",
-            name: "wkname",
-            path: "/path/to/wk",
-          },
+          result,
           success: true,
         }));
 
       before(async () => {
-        cmdResult = await GetWorkspaceFromPath.run(
-          "/foo/bar", cmShellMock.object);
+        cmdResult = await Checkin.run(
+          cmShellMock.object, "ci message", "/path/to/wk/foo.c", "/path/to/wk/bar.c");
       });
 
       it("produces a result", () => {
         expect(cmdResult).to.be.not.undefined;
       });
 
-      it("contains the correct workspace path", () => {
-        expect(cmdResult!.path).to.be.equal("/path/to/wk");
-      });
-
-      it("contains the correct workspace name", () => {
-        expect(cmdResult!.name).to.be.equal("wkname");
-      });
-
-      it("contains the correct workspace ID", () => {
-        expect(cmdResult!.id).to.be.string("95b0a429-7d9c-48af-8b5b-6f1ced257b20");
+      it("has the correct result", () => {
+        expect(cmdResult).to.eql(result);
       });
 
       it("calls the expected shell methods", () => {
@@ -57,10 +57,10 @@ describe("GetWorkspaceFromPath Command", () => {
       let error: Error | undefined;
 
       cmShellMock
-      .setup(mock => mock.exec(
+        .setup(mock => mock.exec(
           It.isAnyString(),
           It.is(args => true),
-          It.is<ICmParser<IWorkspaceInfo | undefined>>(parser => true)))
+          It.is<ICmParser<ICheckinChangeset[]>>(parser => true)))
         .returns(() => Promise.resolve({
           error: new Error("Sample error"),
           success: true,
@@ -68,7 +68,8 @@ describe("GetWorkspaceFromPath Command", () => {
 
       before(async () => {
         try {
-          await GetWorkspaceFromPath.run("/foo/bar", cmShellMock.object);
+          await Checkin.run(
+            cmShellMock.object, "ci message", "/path/to/wk/foo.c", "/path/to/wk/bar.c");
         } catch (e) {
           error = e;
         }
@@ -95,7 +96,7 @@ describe("GetWorkspaceFromPath Command", () => {
       .setup(mock => mock.exec(
         It.isAnyString(),
         It.is(args => true),
-        It.is<ICmParser<IWorkspaceInfo>>(parser => true)))
+        It.is<ICmParser<ICheckinChangeset[]>>(parser => true)))
       .returns(() => Promise.resolve({
         error: new Error("Sample error"),
         success: false,
@@ -103,7 +104,8 @@ describe("GetWorkspaceFromPath Command", () => {
 
     before(async () => {
       try {
-        await GetWorkspaceFromPath.run("/foo/bar", cmShellMock.object);
+        await Checkin.run(
+          cmShellMock.object, "ci message", "/path/to/wk/foo.c", "/path/to/wk/bar.c");
       } catch (e) {
         error = e;
       }
@@ -111,7 +113,7 @@ describe("GetWorkspaceFromPath Command", () => {
 
     it("produces the expected error", () => {
         expect(error).to.be.not.undefined;
-        expect(error!.message).to.equal("Command failed: Sample error");
+        expect(error!.message).to.equal("Command execution failed.");
     });
 
     it("calls the expected shell methods", async () => {
