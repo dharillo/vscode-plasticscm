@@ -68,7 +68,7 @@
     "@types/chai": "^4.2.7",
     "@types/glob": "^7.1.1",
     "@types/mocha": "^5.2.7",
-    "@types/node": "^12.11.7",
+    "@types/node": "^14.11.8",
     "@types/uuid": "^3.4.6",
     "@types/xml2js": "^0.4.5",
     "@types/vscode": "^1.41.0",
